@@ -44,6 +44,7 @@ const copyPairingBtn = document.getElementById('copyPairingBtn');
 const refreshPairingBtn = document.getElementById('refreshPairingBtn');
 const emergencyBtn = document.getElementById('emergencyBtn');
 const registerTutorBtn = document.getElementById('registerTutorBtn');
+const themeToggleBtn = document.getElementById('themeToggleBtn');
 const tutorPanel = document.getElementById('tutorPanel');
 const bluetoothBtn = document.getElementById('bluetoothBtn');
 const bluetoothStatus = document.getElementById('bluetoothStatus');
@@ -54,6 +55,7 @@ const TUTOR_KEY = 'gmac-tutor';
 const SESSION_KEY = 'gmac-tutor-session';
 const PAIRING_KEY = 'gmac-pairing-code';
 const USER_PROFILE_KEY = 'gmac-user-profile';
+const THEME_KEY = 'gmac-theme';
 const PAIRING_TTL = 24 * 60 * 60 * 1000;
 let lastCoords = null;
 let deferredPrompt = null;
@@ -96,6 +98,21 @@ const defaultHistory = [
 function setStatus(message, type = '') {
   statusEl.textContent = message;
   statusEl.className = `status ${type}`.trim();
+}
+
+function applyTheme(theme = 'light') {
+  const safeTheme = theme === 'dark' ? 'dark' : 'light';
+  document.body.dataset.theme = safeTheme;
+  localStorage.setItem(THEME_KEY, safeTheme);
+
+  if (themeToggleBtn) {
+    themeToggleBtn.textContent = safeTheme === 'dark' ? 'Modo claro' : 'Modo oscuro';
+  }
+}
+
+function loadTheme() {
+  const savedTheme = localStorage.getItem(THEME_KEY) || 'light';
+  applyTheme(savedTheme);
 }
 
 function setBluetoothStatus(message, type = '') {
@@ -347,6 +364,18 @@ function showAppContent(role = 'tutor') {
   emergencyBtn.hidden = role === 'tutor';
   emergencyBtn.style.display = role === 'tutor' ? 'none' : 'block';
   emergencyBtn.setAttribute('aria-hidden', String(role === 'tutor'));
+
+  bluetoothBtn.hidden = role === 'tutor';
+  bluetoothBtn.style.display = role === 'tutor' ? 'none' : 'block';
+  bluetoothBtn.setAttribute('aria-hidden', String(role === 'tutor'));
+
+  const eventFormEl = document.getElementById('eventForm');
+  if (eventFormEl) {
+    eventFormEl.hidden = role === 'tutor';
+    eventFormEl.style.display = role === 'tutor' ? 'none' : 'block';
+    eventFormEl.setAttribute('aria-hidden', String(role === 'tutor'));
+    eventFormEl.classList.toggle('hidden', role === 'tutor');
+  }
 
   accountBadge.textContent = currentAccountEmail ? `${role === 'user' ? 'Usuario' : 'Tutor'}: ${currentAccountEmail}` : 'Cuenta activa';
   pairingCodeEl.textContent = getPairingCode() || '--';
@@ -771,6 +800,13 @@ userLoginForm.addEventListener('submit', (event) => {
   localStorage.setItem(USER_PROFILE_KEY, JSON.stringify({ name, email, updatedAt: Date.now() }));
   sessionStorage.setItem(SESSION_KEY, JSON.stringify({ role: 'user', name, email }));
   userPassword.value = '';
+  const userEventForm = document.getElementById('eventForm');
+  if (userEventForm) {
+    userEventForm.hidden = false;
+    userEventForm.style.display = 'block';
+    userEventForm.removeAttribute('aria-hidden');
+    userEventForm.classList.remove('hidden');
+  }
   showAppContent('user');
   generatePairingCode();
   setStatus('Sesión iniciada. Comparte el código con tu tutor.', 'success');
@@ -795,6 +831,13 @@ tutorLoginForm.addEventListener('submit', (event) => {
   saveTutorData();
   loginPassword.value = '';
   loginPairingCode.value = '';
+  const tutorEventForm = document.getElementById('eventForm');
+  if (tutorEventForm) {
+    tutorEventForm.hidden = true;
+    tutorEventForm.style.display = 'none';
+    tutorEventForm.setAttribute('aria-hidden', 'true');
+    tutorEventForm.classList.add('hidden');
+  }
   showAppContent();
   setStatus('Sesión de tutor iniciada y cuenta vinculada.', 'success');
 });
@@ -829,8 +872,16 @@ eventForm.addEventListener('submit', (event) => {
 
 loadTutorData();
 loadUserProfile();
+loadTheme();
 loadTutorSession();
 updateHistoryList();
+
+if (themeToggleBtn) {
+  themeToggleBtn.addEventListener('click', () => {
+    const nextTheme = document.body.dataset.theme === 'dark' ? 'light' : 'dark';
+    applyTheme(nextTheme);
+  });
+}
 
 window.addEventListener('beforeinstallprompt', (event) => {
   event.preventDefault();
