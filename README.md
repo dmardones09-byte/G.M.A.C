@@ -18,6 +18,8 @@ Proyecto sencillo en HTML, CSS y JavaScript para obtener la ubicación actual de
    http://IP-DE-LA-PC:8000
    ```
 
+Si el celular no puede abrir la dirección, ejecuta `abrir-firewall-gmac.bat` como administrador y permite Node.js en la red privada de Windows. La PC y el celular no deben usar redes Wi-Fi distintas ni una red de invitados.
+
 No abras `index.html` directamente con `file://`: en ese modo cada dispositivo usa su propio almacenamiento y no puede compartir el código.
 
 ## Funcionalidad

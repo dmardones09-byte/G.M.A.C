@@ -1,5 +1,6 @@
 const http = require('http');
 const fs = require('fs');
+const os = require('os');
 const path = require('path');
 
 const root = __dirname;
@@ -85,5 +86,10 @@ const server = http.createServer((request, response) => {
 
 server.listen(port, '0.0.0.0', () => {
   console.log(`GMAC disponible en http://localhost:${port}`);
-  console.log('Desde el celular usa la IP de esta PC, por ejemplo: http://192.168.1.20:8000');
+  const interfaces = os.networkInterfaces();
+  const addresses = Object.values(interfaces)
+    .flat()
+    .filter((network) => network && network.family === 'IPv4' && !network.internal)
+    .map((network) => `http://${network.address}:${port}`);
+  addresses.forEach((address) => console.log(`Desde el celular usa: ${address}`));
 });

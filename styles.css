@@ -391,6 +391,22 @@ button:hover {
   min-height: 260px;
 }
 
+.map-placeholder {
+  display: flex;
+  min-height: 260px;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 8px;
+  padding: 24px;
+  color: var(--muted);
+  text-align: center;
+}
+
+.map-placeholder strong {
+  color: var(--text);
+}
+
 .map-card iframe {
   display: block;
   width: 100%;
@@ -851,8 +867,31 @@ button:hover {
 }
 
 @media (max-width: 720px) {
+  body {
+    display: block;
+  }
+
   .app-shell {
-    width: min(100vw, 480px);
+    width: 100%;
+    padding: max(12px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) max(22px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
+  }
+
+  .app-card,
+  .login-card {
+    width: 100%;
+    border-radius: 14px;
+  }
+
+  button,
+  input,
+  select,
+  textarea {
+    min-height: 44px;
+  }
+
+  .rail-open {
+    top: max(12px, env(safe-area-inset-top));
+    left: max(12px, env(safe-area-inset-left));
   }
 }
 

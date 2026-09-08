@@ -594,6 +594,7 @@ function triggerTutorAlert(reason) {
 
 function updateMap(latitude, longitude) {
   const mapUrl = `https://maps.google.com/maps?q=${latitude},${longitude}&z=16&output=embed`;
+  mapEl.classList.remove('map-placeholder');
   mapEl.innerHTML = `<iframe
     title="Mapa de ubicación"
     loading="lazy"
@@ -677,6 +678,11 @@ function showError(error) {
 function getLocation() {
   if (!navigator.geolocation) {
     setStatus('Este navegador no soporta geolocalización.', 'error');
+    return;
+  }
+
+  if (!window.isSecureContext && window.location.hostname !== 'localhost') {
+    setStatus('En el celular la ubicación necesita HTTPS. Abre la app desde una dirección segura para mostrar el mapa.', 'error');
     return;
   }
 
