@@ -129,6 +129,18 @@
 
         <div id="alertBox" class="alert-box hidden" aria-live="assertive"></div>
 
+        <section id="userPairingBox" class="pairing-panel hidden" aria-live="polite">
+          <div class="pairing-box user-pairing-box">
+            <span>Código para vincular</span>
+            <strong id="userPairingCode">--</strong>
+            <small>Comparte este código con tu tutor para vincular la cuenta.</small>
+            <div class="user-pairing-actions">
+              <button id="copyPairingBtn" class="secondary" type="button">Copiar código</button>
+              <button id="refreshPairingBtn" class="secondary" type="button">Generar otro</button>
+            </div>
+          </div>
+        </section>
+
         <section id="tutorPanel" class="watch-panel hidden">
           <div class="watch-header">
             <h2>Vigilancia del reloj</h2>

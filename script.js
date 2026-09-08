@@ -38,6 +38,10 @@ const generateCodeBtn = document.getElementById('generateCodeBtn');
 const alertBox = document.getElementById('alertBox');
 const installBtn = document.getElementById('installBtn');
 const installHint = document.getElementById('installHint');
+const userPairingBox = document.getElementById('userPairingBox');
+const userPairingCode = document.getElementById('userPairingCode');
+const copyPairingBtn = document.getElementById('copyPairingBtn');
+const refreshPairingBtn = document.getElementById('refreshPairingBtn');
 const emergencyBtn = document.getElementById('emergencyBtn');
 const registerTutorBtn = document.getElementById('registerTutorBtn');
 const tutorPanel = document.getElementById('tutorPanel');
@@ -324,9 +328,11 @@ function showAppContent(role = 'tutor') {
   loginCard.classList.add('hidden');
   appContent.classList.remove('hidden');
   locationPanel.classList.toggle('hidden', role !== 'tutor');
+  userPairingBox.classList.toggle('hidden', role !== 'user');
   registerTutorBtn.textContent = role === 'user' ? 'Ingresar como tutor' : 'Registrar tutor';
   accountBadge.textContent = currentAccountEmail ? `${role === 'user' ? 'Usuario' : 'Tutor'}: ${currentAccountEmail}` : 'Cuenta activa';
   pairingCodeEl.textContent = getPairingCode() || '--';
+  userPairingCode.textContent = getPairingCode() || '--';
   updateHistoryList();
   updateInstallPromptState();
 }
@@ -355,8 +361,24 @@ function generatePairingCode() {
   const code = `GMAC-${String(randomBytes[0] % 10000).padStart(4, '0')}`;
   localStorage.setItem(PAIRING_KEY, JSON.stringify({ code, createdAt: Date.now() }));
   pairingCodeEl.textContent = code;
+  userPairingCode.textContent = code;
   setStatus('Código generado. Compártelo con el tutor.', 'success');
   return code;
+}
+
+async function copyPairingCode() {
+  const code = getPairingCode();
+  if (!code) {
+    setStatus('Primero genera un código de vinculación.', 'error');
+    return;
+  }
+
+  try {
+    await navigator.clipboard.writeText(code);
+    setStatus('Código copiado correctamente.', 'success');
+  } catch (error) {
+    setStatus('No se pudo copiar el código automáticamente.', 'error');
+  }
 }
 
 function setLoginRole(role) {
@@ -710,6 +732,10 @@ userRoleBtn.addEventListener('click', () => setLoginRole('user'));
 tutorRoleBtn.addEventListener('click', () => setLoginRole('tutor'));
 
 generateCodeBtn.addEventListener('click', generatePairingCode);
+copyPairingBtn.addEventListener('click', copyPairingCode);
+refreshPairingBtn.addEventListener('click', () => {
+  generatePairingCode();
+});
 
 userLoginForm.addEventListener('submit', (event) => {
   event.preventDefault();
