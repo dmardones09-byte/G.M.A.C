@@ -65,7 +65,13 @@ let lastHeartRateAlertAt = 0;
 let currentRole = 'tutor';
 let alertAudioContext = null;
 let currentAccountEmail = '';
+registerTutorBtn.hidden = true;
+registerTutorBtn.setAttribute('aria-hidden', 'true');
+registerTutorBtn.style.display = 'none';
 
+if (registerTutorBtn && window.location.protocol !== 'file:') {
+  registerTutorBtn.hidden = true;
+}
 const HEART_RATE_SERVICE = 'heart_rate';
 const HEART_RATE_CHARACTERISTIC = 'heart_rate_measurement';
 const HEART_RATE_ALERT_COOLDOWN = 10 * 60 * 1000;
@@ -156,6 +162,10 @@ function escapeHtml(value) {
     .replaceAll("'", '&#039;');
 }
 
+function normalizePairingCode(value = '') {
+  return String(value ?? '').trim().replace(/\s+/g, '').toUpperCase();
+}
+
 function getPairingCode() {
   const stored = localStorage.getItem(PAIRING_KEY);
   if (!stored) return '';
@@ -163,10 +173,10 @@ function getPairingCode() {
   try {
     const parsed = JSON.parse(stored);
     if (parsed.code && Date.now() - parsed.createdAt < PAIRING_TTL) {
-      return parsed.code;
+      return normalizePairingCode(parsed.code);
     }
   } catch (error) {
-    return stored;
+    return normalizePairingCode(stored);
   }
 
   return '';
@@ -329,7 +339,15 @@ function showAppContent(role = 'tutor') {
   appContent.classList.remove('hidden');
   locationPanel.classList.toggle('hidden', role !== 'tutor');
   userPairingBox.classList.toggle('hidden', role !== 'user');
-  registerTutorBtn.textContent = role === 'user' ? 'Ingresar como tutor' : 'Registrar tutor';
+  registerTutorBtn.hidden = true;
+  registerTutorBtn.classList.add('hidden');
+  registerTutorBtn.setAttribute('aria-hidden', 'true');
+  registerTutorBtn.style.display = 'none';
+
+  emergencyBtn.hidden = role === 'tutor';
+  emergencyBtn.style.display = role === 'tutor' ? 'none' : 'block';
+  emergencyBtn.setAttribute('aria-hidden', String(role === 'tutor'));
+
   accountBadge.textContent = currentAccountEmail ? `${role === 'user' ? 'Usuario' : 'Tutor'}: ${currentAccountEmail}` : 'Cuenta activa';
   pairingCodeEl.textContent = getPairingCode() || '--';
   userPairingCode.textContent = getPairingCode() || '--';
@@ -358,7 +376,7 @@ function updateInstallPromptState() {
 function generatePairingCode() {
   const randomBytes = new Uint32Array(1);
   globalThis.crypto.getRandomValues(randomBytes);
-  const code = `GMAC-${String(randomBytes[0] % 10000).padStart(4, '0')}`;
+  const code = normalizePairingCode(`GMAC-${String(randomBytes[0] % 10000).padStart(4, '0')}`);
   localStorage.setItem(PAIRING_KEY, JSON.stringify({ code, createdAt: Date.now() }));
   pairingCodeEl.textContent = code;
   userPairingCode.textContent = code;
@@ -649,6 +667,8 @@ locateBtn.addEventListener('click', () => {
 });
 
 registerTutorBtn.addEventListener('click', () => {
+  if (registerTutorBtn.hidden) return;
+
   if (currentRole === 'user') {
     sessionStorage.removeItem(SESSION_KEY);
     appContent.classList.add('hidden');
@@ -761,9 +781,10 @@ tutorLoginForm.addEventListener('submit', (event) => {
 
   const email = loginEmail.value.trim().toLowerCase();
   const password = loginPassword.value;
-  const pairingCode = loginPairingCode.value.trim().toUpperCase();
+  const expectedPairingCode = getPairingCode();
+  const pairingCode = normalizePairingCode(loginPairingCode.value);
 
-  if (!loginEmail.validity.valid || password.length < 6 || pairingCode !== getPairingCode()) {
+  if (!loginEmail.validity.valid || password.length < 6 || !expectedPairingCode || pairingCode !== expectedPairingCode) {
     setStatus('Revisa el correo, la contraseña y el código de vinculación.', 'error');
     return;
   }
