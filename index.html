@@ -6,7 +6,7 @@
     <meta name="theme-color" content="#7c948a" />
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; frame-src https://maps.google.com; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self';"
+      content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; frame-src https://maps.google.com https://www.google.com; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self';"
     />
     <meta
       name="description"
@@ -28,6 +28,8 @@
           <button class="rail-btn active" type="button">Inicio</button>
           <button class="rail-btn" type="button">Historial</button>
           <button class="rail-btn" type="button">Ubicación</button>
+          <button id="infoRailBtn" class="rail-btn" type="button">Información</button>
+          <button id="callRailBtn" class="rail-btn call-rail-btn" type="button">Llamar</button>
           <button id="bluetoothBtn" class="rail-btn bluetooth-rail-btn" type="button" hidden>Bluetooth</button>
           <button id="logoutBtn" class="rail-btn danger" type="button">Cerrar sesión</button>
         </nav>
@@ -55,6 +57,10 @@
           <label>
             Correo de la cuenta
             <input id="userEmail" type="email" placeholder="persona@ejemplo.com" autocomplete="email" required />
+          </label>
+          <label>
+            Teléfono de la persona usuaria
+            <input id="userPhone" type="tel" placeholder="Ej: +54 11 1234 5678" autocomplete="tel" />
           </label>
           <label>
             Contraseña
@@ -106,6 +112,27 @@
           Monitoreo para niños, adultos y personas mayores, con seguimiento de caídas, mareos y problemas clínicos.
         </div>
 
+        <section id="infoPanel" class="info-panel hidden" aria-live="polite">
+          <h2>Información de la cuenta</h2>
+          <div class="info-panel-section">
+            <h3>Persona usuaria</h3>
+            <div class="info-panel-grid">
+              <div><span>Nombre</span><strong id="infoUserName">--</strong></div>
+              <div><span>Correo</span><strong id="infoUserEmail">--</strong></div>
+              <div><span>Teléfono</span><strong id="infoUserPhone">--</strong></div>
+              <div><span>Código</span><strong id="infoCode">--</strong></div>
+            </div>
+          </div>
+          <div class="info-panel-section">
+            <h3>Tutor</h3>
+            <div class="info-panel-grid">
+              <div><span>Nombre</span><strong id="infoTutorName">--</strong></div>
+              <div><span>Correo</span><strong id="infoTutorEmail">--</strong></div>
+              <div><span>Teléfono</span><strong id="infoTutorPhone">--</strong></div>
+            </div>
+          </div>
+        </section>
+
         <button id="emergencyBtn" class="emergency-btn" type="button" hidden>Emergencia</button>
         <div id="locationPanel" class="tutor-only">
           <button id="locateBtn" type="button">Actualizar ubicación</button>
@@ -153,6 +180,10 @@
             <span>Código para vincular</span>
             <strong id="userPairingCode">--</strong>
             <small>Comparte este código con tu tutor para vincular la cuenta.</small>
+            <label>
+              Teléfono del tutor para emergencias
+              <input id="emergencyTutorPhone" type="tel" placeholder="Ej: +54 11 1234 5678" autocomplete="tel" />
+            </label>
             <div class="user-pairing-actions">
               <button id="copyPairingBtn" class="secondary" type="button">Copiar código</button>
               <button id="refreshPairingBtn" class="secondary" type="button">Generar otro</button>
@@ -170,6 +201,10 @@
           </div>
 
           <div class="tutor-box">
+            <label>
+              Número de la persona usuaria
+              <input id="tutorUserPhone" type="tel" placeholder="Ej: +54 11 1234 5678" autocomplete="tel" />
+            </label>
             <label>
               Tutor / responsable
               <input id="tutorName" type="text" placeholder="Nombre del tutor" />

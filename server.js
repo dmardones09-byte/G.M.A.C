@@ -5,7 +5,8 @@ const path = require('path');
 
 const root = __dirname;
 const port = 8000;
-let pairing = { code: '', createdAt: 0 };
+let pairing = { code: '', phone: '', tutorPhone: '', createdAt: 0 };
+let latestAlert = null;
 
 const mimeTypes = {
   '.html': 'text/html; charset=utf-8',
@@ -66,8 +67,44 @@ const server = http.createServer((request, response) => {
           sendJson(response, 400, { error: 'Falta el codigo' });
           return;
         }
-        pairing = { code, createdAt: Date.now() };
+        pairing = {
+          code,
+          phone: String(data.phone || '').replace(/\D/g, ''),
+          tutorPhone: String(data.tutorPhone || '').replace(/\D/g, ''),
+          createdAt: Date.now()
+        };
         sendJson(response, 200, { ok: true, code });
+      } catch (error) {
+        sendJson(response, 400, { error: 'Solicitud invalida' });
+      }
+    });
+    return;
+  }
+
+  if (requestUrl.pathname === '/api/alert' && request.method === 'GET') {
+    const code = String(requestUrl.searchParams.get('code') || '').replace(/\s+/g, '').toUpperCase();
+    if (!latestAlert || latestAlert.code !== code) {
+      sendJson(response, 200, { alert: null });
+      return;
+    }
+    sendJson(response, 200, { alert: latestAlert });
+    return;
+  }
+
+  if (requestUrl.pathname === '/api/alert' && request.method === 'POST') {
+    let body = '';
+    request.on('data', (chunk) => { body += chunk; });
+    request.on('end', () => {
+      try {
+        const data = JSON.parse(body);
+        const code = String(data.code || '').replace(/\s+/g, '').toUpperCase();
+        const message = String(data.message || '').trim();
+        if (!code || !message) {
+          sendJson(response, 400, { error: 'Faltan datos de la alerta' });
+          return;
+        }
+        latestAlert = { id: Date.now(), code, message, createdAt: Date.now() };
+        sendJson(response, 200, { ok: true, alert: latestAlert });
       } catch (error) {
         sendJson(response, 400, { error: 'Solicitud invalida' });
       }

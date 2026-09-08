@@ -24,6 +24,7 @@ const tutorRoleBtn = document.getElementById('tutorRoleBtn');
 const loginIntro = document.getElementById('loginIntro');
 const userName = document.getElementById('userName');
 const userEmail = document.getElementById('userEmail');
+const userPhone = document.getElementById('userPhone');
 const userPassword = document.getElementById('userPassword');
 const loginEmail = document.getElementById('loginEmail');
 const loginPassword = document.getElementById('loginPassword');
@@ -42,6 +43,8 @@ const userPairingBox = document.getElementById('userPairingBox');
 const userPairingCode = document.getElementById('userPairingCode');
 const copyPairingBtn = document.getElementById('copyPairingBtn');
 const refreshPairingBtn = document.getElementById('refreshPairingBtn');
+const tutorUserPhone = document.getElementById('tutorUserPhone');
+const emergencyTutorPhone = document.getElementById('emergencyTutorPhone');
 const emergencyBtn = document.getElementById('emergencyBtn');
 const registerTutorBtn = document.getElementById('registerTutorBtn');
 const themeToggleBtn = document.getElementById('themeToggleBtn');
@@ -53,6 +56,16 @@ const leftRail = document.getElementById('leftRail');
 const logoutBtn = document.getElementById('logoutBtn');
 const openRailBtn = document.getElementById('openRailBtn');
 const closeRailBtn = document.getElementById('closeRailBtn');
+const infoRailBtn = document.getElementById('infoRailBtn');
+const infoPanel = document.getElementById('infoPanel');
+const infoUserName = document.getElementById('infoUserName');
+const infoUserEmail = document.getElementById('infoUserEmail');
+const infoUserPhone = document.getElementById('infoUserPhone');
+const infoCode = document.getElementById('infoCode');
+const infoTutorName = document.getElementById('infoTutorName');
+const infoTutorEmail = document.getElementById('infoTutorEmail');
+const infoTutorPhone = document.getElementById('infoTutorPhone');
+const callRailBtn = document.getElementById('callRailBtn');
 
 const STORAGE_KEY = 'gmac-history';
 const TUTOR_KEY = 'gmac-tutor';
@@ -72,6 +85,9 @@ let currentRole = 'tutor';
 let alertAudioContext = null;
 let currentAccountEmail = '';
 let sharedPairingCode = '';
+let linkedUserPhone = '';
+let alertPollTimer = null;
+let lastRemoteAlertId = 0;
 registerTutorBtn.hidden = true;
 registerTutorBtn.setAttribute('aria-hidden', 'true');
 registerTutorBtn.style.display = 'none';
@@ -199,7 +215,11 @@ async function savePairingCodeToServer(code) {
     const response = await fetch('/api/pairing', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ code })
+      body: JSON.stringify({
+        code,
+        phone: userPhone?.value || '',
+        tutorPhone: emergencyTutorPhone?.value || ''
+      })
     });
     if (!response.ok) return false;
     sharedPairingCode = code;
@@ -217,10 +237,57 @@ async function loadPairingCodeFromServer() {
     if (!response.ok) return '';
     const data = await response.json();
     sharedPairingCode = normalizePairingCode(data.code);
+    linkedUserPhone = String(data.phone || '').replace(/\D/g, '');
     return sharedPairingCode;
   } catch (error) {
     return '';
   }
+}
+
+async function sendAlertToServer(message) {
+  const code = sharedPairingCode || getPairingCode();
+  if (!code || !isSharedServerAvailable()) return false;
+
+  try {
+    const response = await fetch('/api/alert', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code, message })
+    });
+    return response.ok;
+  } catch (error) {
+    return false;
+  }
+}
+
+async function checkRemoteAlert() {
+  if (currentRole !== 'tutor' || !isSharedServerAvailable()) return;
+  const code = sharedPairingCode || await loadPairingCodeFromServer();
+  if (!code) return;
+
+  try {
+    const response = await fetch(`/api/alert?code=${encodeURIComponent(code)}`, { cache: 'no-store' });
+    if (!response.ok) return;
+    const data = await response.json();
+    if (data.alert && data.alert.id > lastRemoteAlertId) {
+      lastRemoteAlertId = data.alert.id;
+      showAlertMessage(`Alerta recibida: ${data.alert.message}`);
+      setStatus('Alerta de emergencia recibida. Revisa el mensaje y llama al contacto.', 'error');
+    }
+  } catch (error) {
+    // La app sigue funcionando aunque el servidor no responda temporalmente.
+  }
+}
+
+function startAlertPolling() {
+  if (alertPollTimer) clearInterval(alertPollTimer);
+  checkRemoteAlert();
+  alertPollTimer = setInterval(checkRemoteAlert, 3000);
+}
+
+function stopAlertPolling() {
+  if (alertPollTimer) clearInterval(alertPollTimer);
+  alertPollTimer = null;
 }
 
 function getPairingCode() {
@@ -348,6 +415,7 @@ function loadTutorData() {
       tutorName.value = tutor.name || '';
       tutorEmail.value = tutor.email || '';
       tutorPhone.value = tutor.phone || '';
+      emergencyTutorPhone.value = tutor.phone || '';
       return tutor;
     }
   } catch (error) {
@@ -365,6 +433,7 @@ function loadUserProfile() {
     const profile = JSON.parse(stored);
     userName.value = profile.name || '';
     userEmail.value = profile.email || '';
+    userPhone.value = profile.phone || '';
   } catch (error) {
     localStorage.removeItem(USER_PROFILE_KEY);
   }
@@ -410,6 +479,7 @@ function showAppContent(role = 'tutor') {
   }
   locationPanel.classList.toggle('hidden', role !== 'tutor');
   userPairingBox.classList.toggle('hidden', role !== 'user');
+  tutorPanel.classList.toggle('hidden', role !== 'tutor');
   registerTutorBtn.hidden = true;
   registerTutorBtn.classList.add('hidden');
   registerTutorBtn.setAttribute('aria-hidden', 'true');
@@ -418,6 +488,7 @@ function showAppContent(role = 'tutor') {
   emergencyBtn.hidden = role === 'tutor';
   emergencyBtn.style.display = role === 'tutor' ? 'none' : 'block';
   emergencyBtn.setAttribute('aria-hidden', String(role === 'tutor'));
+  callRailBtn.textContent = role === 'tutor' ? 'Llamar a la persona usuaria' : 'Llamar al tutor';
 
   bluetoothBtn.hidden = role === 'tutor';
   bluetoothBtn.style.display = role === 'tutor' ? 'none' : 'block';
@@ -436,10 +507,25 @@ function showAppContent(role = 'tutor') {
   userPairingCode.textContent = getPairingCode() || '--';
   updateHistoryList();
   updateInstallPromptState();
+  updateInfoPanel(role);
+  if (role === 'tutor') startAlertPolling();
+  else stopAlertPolling();
+}
+
+function updateInfoPanel(role = currentRole) {
+  if (!infoUserName || !infoUserEmail || !infoUserPhone || !infoCode) return;
+  infoUserName.textContent = userName.value || 'No registrado';
+  infoUserEmail.textContent = userEmail.value || 'No registrado';
+  infoUserPhone.textContent = userPhone.value || 'No registrado';
+  infoCode.textContent = getPairingCode() || '--';
+  infoTutorName.textContent = tutorName.value || 'No registrado';
+  infoTutorEmail.textContent = tutorEmail.value || 'No registrado';
+  infoTutorPhone.textContent = tutorPhone.value || 'No registrado';
 }
 
 function resetToLoginScreen() {
   currentAccountEmail = '';
+  stopAlertPolling();
   sessionStorage.removeItem(SESSION_KEY);
   loginCard.classList.remove('hidden');
   appContent.classList.add('hidden');
@@ -517,7 +603,7 @@ function setLoginRole(role) {
 function openTutorCommunication(message) {
   const tutor = saveTutorData();
   const cleanEmail = (tutor.email || '').trim();
-  const cleanPhone = (tutor.phone || '').replace(/\D/g, '');
+    const cleanPhone = (tutor.phone || '').replace(/\D/g, '');
 
   if (cleanEmail && !cleanPhone) {
     const mailtoUrl = `mailto:${encodeURIComponent(cleanEmail)}?subject=${encodeURIComponent('G.M.A.C - Alerta')}&body=${encodeURIComponent(message)}`;
@@ -536,10 +622,25 @@ function openTutorCommunication(message) {
   setStatus('Registra un correo o teléfono del tutor para enviar alertas.', 'error');
 }
 
-function callTutor() {
-  const cleanPhone = (tutorPhone.value || '').replace(/\D/g, '');
+function callTutorAutomatically() {
+  const cleanPhone = (emergencyTutorPhone.value || tutorPhone.value || '').replace(/\D/g, '');
   if (!cleanPhone) {
-    setStatus('Registra el teléfono del tutor para poder llamarlo.', 'error');
+    setStatus('Registra primero el teléfono del tutor para activar la llamada automática.', 'error');
+    return false;
+  }
+
+  window.location.href = `tel:${cleanPhone}`;
+  return true;
+}
+
+function callContact() {
+  const cleanPhone = currentRole === 'tutor'
+    ? (tutorUserPhone?.value || linkedUserPhone || '').replace(/\D/g, '')
+    : (tutorPhone.value || '').replace(/\D/g, '');
+  if (!cleanPhone) {
+    setStatus(currentRole === 'tutor'
+      ? 'La persona usuaria no registró un teléfono de contacto.'
+      : 'Registra el teléfono del tutor para poder llamarlo.', 'error');
     return;
   }
 
@@ -552,8 +653,8 @@ function showAlertMessage(message) {
   const callButton = document.createElement('button');
   callButton.type = 'button';
   callButton.className = 'alert-call-btn';
-  callButton.textContent = 'Llamar al tutor';
-  callButton.addEventListener('click', callTutor);
+  callButton.textContent = currentRole === 'tutor' ? 'Llamar a la persona usuaria' : 'Llamar al tutor';
+  callButton.addEventListener('click', callContact);
   alertBox.appendChild(callButton);
   alertBox.classList.remove('hidden');
   playAlertSound();
@@ -579,17 +680,23 @@ function buildAlertMessage(reason) {
   return `G.M.A.C: ${reason} ${locationText}. ${tutorReference} ${emailReference} ${phoneReference}`.trim();
 }
 
-function triggerTutorAlert(reason) {
+async function triggerTutorAlert(reason, options = {}) {
   const fullMessage = buildAlertMessage(reason);
   showAlertMessage(fullMessage);
   alertActivated = true;
   setStatus('Se activó una alerta automática para el tutor.', 'error');
+  const sentToServer = await sendAlertToServer(fullMessage);
 
   if (navigator.clipboard) {
     navigator.clipboard.writeText(fullMessage).catch(() => {});
   }
 
-  openTutorCommunication(fullMessage);
+  if (!options.autoCall) {
+    openTutorCommunication(fullMessage);
+  }
+  if (sentToServer) {
+    setStatus('Alerta enviada al tutor por la conexión compartida.', 'success');
+  }
 }
 
 function updateMap(latitude, longitude) {
@@ -659,10 +766,10 @@ function showError(error) {
 
   switch (error.code) {
     case error.PERMISSION_DENIED:
-      message = 'Se denegó el acceso a la ubicación. Permítela para continuar.';
+      message = 'Se denegó el acceso a la ubicación. Permítela y usa HTTPS en el celular para mostrar el mapa.';
       break;
     case error.POSITION_UNAVAILABLE:
-      message = 'La ubicación no está disponible en este momento.';
+      message = 'La ubicación no está disponible. En celulares, la dirección debe usar HTTPS para mostrar el mapa.';
       break;
     case error.TIMEOUT:
       message = 'La solicitud tardó demasiado. Inténtalo nuevamente.';
@@ -678,11 +785,6 @@ function showError(error) {
 function getLocation() {
   if (!navigator.geolocation) {
     setStatus('Este navegador no soporta geolocalización.', 'error');
-    return;
-  }
-
-  if (!window.isSecureContext && window.location.hostname !== 'localhost') {
-    setStatus('En el celular la ubicación necesita HTTPS. Abre la app desde una dirección segura para mostrar el mapa.', 'error');
     return;
   }
 
@@ -873,6 +975,27 @@ function setRailOpen(isOpen) {
 
 openRailBtn?.addEventListener('click', () => setRailOpen(true));
 closeRailBtn?.addEventListener('click', () => setRailOpen(false));
+infoRailBtn?.addEventListener('click', () => {
+  infoPanel?.classList.toggle('hidden');
+  updateInfoPanel();
+});
+callRailBtn?.addEventListener('click', () => {
+  if (currentRole === 'tutor') callContact();
+  else callTutorAutomatically();
+});
+tutorUserPhone?.addEventListener('input', () => updateInfoPanel());
+[tutorName, tutorEmail, tutorPhone, userName, userEmail, userPhone].forEach((field) => {
+  field?.addEventListener('input', () => updateInfoPanel());
+});
+emergencyTutorPhone?.addEventListener('input', () => {
+  tutorPhone.value = emergencyTutorPhone.value;
+  localStorage.setItem(TUTOR_KEY, JSON.stringify({
+    name: tutorName.value.trim(),
+    email: tutorEmail.value.trim(),
+    phone: emergencyTutorPhone.value.trim()
+  }));
+  updateInfoPanel();
+});
 
 generateCodeBtn.addEventListener('click', generatePairingCode);
 copyPairingBtn.addEventListener('click', copyPairingCode);
@@ -891,7 +1014,7 @@ userLoginForm.addEventListener('submit', async (event) => {
   }
 
   currentAccountEmail = email;
-  localStorage.setItem(USER_PROFILE_KEY, JSON.stringify({ name, email, updatedAt: Date.now() }));
+  localStorage.setItem(USER_PROFILE_KEY, JSON.stringify({ name, email, phone: userPhone.value.trim(), updatedAt: Date.now() }));
   sessionStorage.setItem(SESSION_KEY, JSON.stringify({ role: 'user', name, email }));
   userPassword.value = '';
   const userEventForm = document.getElementById('eventForm');
@@ -939,6 +1062,7 @@ tutorLoginForm.addEventListener('submit', async (event) => {
   }
   showAppContent();
   setStatus('Sesión de tutor iniciada y cuenta vinculada.', 'success');
+  getLocation();
 });
 
 saveTutorBtn.addEventListener('click', () => {
@@ -950,8 +1074,11 @@ saveTutorBtn.addEventListener('click', () => {
   setStatus('Tutor vinculado correctamente.', 'success');
 });
 
-emergencyBtn.addEventListener('click', () => {
-  triggerTutorAlert('Emergencia activada: posible recaída o problema de salud urgente.');
+emergencyBtn.addEventListener('click', async () => {
+  if (currentRole === 'user') {
+    callTutorAutomatically();
+  }
+  await triggerTutorAlert('Emergencia activada: posible recaída o problema de salud urgente.', { autoCall: currentRole === 'user' });
 });
 
 eventForm.addEventListener('submit', (event) => {
