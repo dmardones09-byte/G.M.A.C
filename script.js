@@ -85,14 +85,14 @@ const HEART_RATE_ALERT_COOLDOWN = 10 * 60 * 1000;
 
 const defaultHistory = [
   {
-    id: crypto.randomUUID(),
+    id: safeRandomId(),
     type: 'Caída',
     note: 'Se reportó caída al entrar a la vivienda.',
     date: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(),
     coords: { lat: -34.6037, lng: -58.3816 }
   },
   {
-    id: crypto.randomUUID(),
+    id: safeRandomId(),
     type: 'Problema clínico',
     note: 'Mareos y dolor leve durante la tarde.',
     date: new Date(Date.now() - 1000 * 60 * 60 * 7).toISOString(),
@@ -520,7 +520,7 @@ function openTutorCommunication(message) {
   const cleanPhone = (tutor.phone || '').replace(/\D/g, '');
 
   if (cleanEmail && !cleanPhone) {
-    const mailtoUrl = `mailto:${encodeURIComponent(cleanEmail)}?subject=${encodeURIComponent('GMAC - Alerta')}&body=${encodeURIComponent(message)}`;
+    const mailtoUrl = `mailto:${encodeURIComponent(cleanEmail)}?subject=${encodeURIComponent('G.M.A.C - Alerta')}&body=${encodeURIComponent(message)}`;
     window.location.href = mailtoUrl;
     setStatus('Se abrió el correo para enviar la alerta al tutor.', 'success');
     return;
@@ -559,7 +559,7 @@ function showAlertMessage(message) {
   playAlertSound();
 
   if ('Notification' in window && Notification.permission === 'granted') {
-    new Notification('GMAC - Alerta', { body: message });
+    new Notification('G.M.A.C - Alerta', { body: message });
   }
 
   if ('vibrate' in navigator) {
@@ -576,7 +576,7 @@ function buildAlertMessage(reason) {
   const emailReference = tutorEmail.value ? `Correo: ${tutorEmail.value}.` : '';
   const phoneReference = tutorPhone.value ? `Contacto: ${tutorPhone.value}.` : '';
 
-  return `GMAC: ${reason} ${locationText}. ${tutorReference} ${emailReference} ${phoneReference}`.trim();
+  return `G.M.A.C: ${reason} ${locationText}. ${tutorReference} ${emailReference} ${phoneReference}`.trim();
 }
 
 function triggerTutorAlert(reason) {

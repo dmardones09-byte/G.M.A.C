@@ -1,4 +1,4 @@
-# Geolocalización
+# G.M.A.C
 
 Proyecto sencillo en HTML, CSS y JavaScript para obtener la ubicación actual del usuario con la API de geolocalización del navegador.
 
@@ -25,8 +25,21 @@ No abras `index.html` directamente con `file://`: en ese modo cada dispositivo u
 - Solicita acceso a la ubicación del usuario.
 - Muestra latitud, longitud, precisión y hora.
 - Genera un enlace para ver la posición en Google Maps.
-- Comparte el código de vinculación entre dispositivos mediante el servidor GMAC.
+- Comparte el código de vinculación entre dispositivos mediante el servidor G.M.A.C.
 
 ## Nota
 
 La geolocalización solo funciona con permiso del usuario y desde un navegador que la soporte.
+
+## Preparar repositorio
+
+Con Git instalado, ejecuta desde esta carpeta:
+
+```bash
+git init
+git add .
+git commit -m "Preparar G.M.A.C para GitHub"
+git branch -M main
+git remote add origin URL_DE_TU_REPOSITORIO
+git push -u origin main
+```
