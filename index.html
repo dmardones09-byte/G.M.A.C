@@ -12,17 +12,32 @@
       name="description"
       content="Aplicación móvil para el seguimiento de caídas y problemas clínicos con geolocalización."
     />
-    <title>G.M.A.C</title>
+    <title>GMAC</title>
     <link rel="manifest" href="manifest.webmanifest" />
-    <link rel="icon" type="image/svg+xml" href="icon.svg" />
+    <link rel="icon" type="image/png" href="logo png/image-removebg-preview.png" />
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
     <main class="app-shell">
+      <aside id="leftRail" class="left-rail hidden" aria-label="Menú lateral">
+        <div class="rail-header">
+          <div class="rail-brand">GMAC</div>
+          <button id="closeRailBtn" class="rail-close" type="button" aria-label="Cerrar menú lateral">×</button>
+        </div>
+        <nav class="rail-nav" aria-label="Navegación principal">
+          <button class="rail-btn active" type="button">Inicio</button>
+          <button class="rail-btn" type="button">Historial</button>
+          <button class="rail-btn" type="button">Ubicación</button>
+          <button id="bluetoothBtn" class="rail-btn bluetooth-rail-btn" type="button" hidden>Bluetooth</button>
+          <button id="logoutBtn" class="rail-btn danger" type="button">Cerrar sesión</button>
+        </nav>
+      </aside>
+      <button id="openRailBtn" class="rail-open hidden" type="button" aria-label="Abrir menú lateral" aria-expanded="false">☰</button>
+
       <section id="loginCard" class="tutor-login login-card" aria-labelledby="tutorLoginTitle">
         <div class="section-heading">
           <div>
-            <p class="eyebrow">Sistema de apoyo G.M.A.C</p>
+            <p class="eyebrow">Sistema de apoyo GMAC</p>
             <h1>Ingresar</h1>
           </div>
           <span class="session-badge">Acceso</span>
@@ -71,7 +86,7 @@
         <div class="topbar">
           <div>
             <p class="eyebrow">Sistema de apoyo</p>
-            <h1>G.M.A.C</h1>
+            <h1>GMAC</h1>
             <span id="accountBadge" class="account-badge">Cuenta activa</span>
           </div>
           <div class="topbar-actions">
@@ -80,9 +95,6 @@
             </button>
             <button id="themeToggleBtn" class="topbar-btn" type="button" aria-label="Cambiar tema">
               Modo oscuro
-            </button>
-            <button id="bluetoothBtn" class="topbar-btn bluetooth-btn" type="button" hidden>
-              Bluetooth
             </button>
           </div>
         </div>

@@ -1,11 +1,11 @@
-const CACHE_NAME = 'gmac-app-v4';
+const CACHE_NAME = 'gmac-app-v5';
 const ASSETS = [
   './',
   './index.html',
   './styles.css',
   './script.js',
   './manifest.webmanifest',
-  './icon.svg'
+  './logo png/image-removebg-preview.png'
 ];
 
 self.addEventListener('install', (event) => {

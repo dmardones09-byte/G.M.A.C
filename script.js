@@ -49,6 +49,10 @@ const tutorPanel = document.getElementById('tutorPanel');
 const bluetoothBtn = document.getElementById('bluetoothBtn');
 const bluetoothStatus = document.getElementById('bluetoothStatus');
 const accountBadge = document.getElementById('accountBadge');
+const leftRail = document.getElementById('leftRail');
+const logoutBtn = document.getElementById('logoutBtn');
+const openRailBtn = document.getElementById('openRailBtn');
+const closeRailBtn = document.getElementById('closeRailBtn');
 
 const STORAGE_KEY = 'gmac-history';
 const TUTOR_KEY = 'gmac-tutor';
@@ -56,7 +60,7 @@ const SESSION_KEY = 'gmac-tutor-session';
 const PAIRING_KEY = 'gmac-pairing-code';
 const USER_PROFILE_KEY = 'gmac-user-profile';
 const THEME_KEY = 'gmac-theme';
-const PAIRING_TTL = 24 * 60 * 60 * 1000;
+const PAIRING_TTL = 7 * 24 * 60 * 60 * 1000;
 let lastCoords = null;
 let deferredPrompt = null;
 let alertActivated = false;
@@ -189,8 +193,14 @@ function getPairingCode() {
 
   try {
     const parsed = JSON.parse(stored);
-    if (parsed.code && Date.now() - parsed.createdAt < PAIRING_TTL) {
-      return normalizePairingCode(parsed.code);
+    if (parsed.code) {
+      const normalized = normalizePairingCode(parsed.code);
+      if (Date.now() - parsed.createdAt < PAIRING_TTL) {
+        return normalized;
+      }
+      if (!parsed.createdAt || Date.now() - parsed.createdAt >= PAIRING_TTL) {
+        localStorage.removeItem(PAIRING_KEY);
+      }
     }
   } catch (error) {
     return normalizePairingCode(stored);
@@ -354,6 +364,14 @@ function showAppContent(role = 'tutor') {
   currentRole = role;
   loginCard.classList.add('hidden');
   appContent.classList.remove('hidden');
+  if (leftRail) {
+    leftRail.classList.remove('hidden');
+    leftRail.classList.remove('is-open');
+  }
+  if (openRailBtn) {
+    openRailBtn.classList.remove('hidden');
+    openRailBtn.setAttribute('aria-expanded', 'false');
+  }
   locationPanel.classList.toggle('hidden', role !== 'tutor');
   userPairingBox.classList.toggle('hidden', role !== 'user');
   registerTutorBtn.hidden = true;
@@ -382,6 +400,24 @@ function showAppContent(role = 'tutor') {
   userPairingCode.textContent = getPairingCode() || '--';
   updateHistoryList();
   updateInstallPromptState();
+}
+
+function resetToLoginScreen() {
+  currentAccountEmail = '';
+  sessionStorage.removeItem(SESSION_KEY);
+  loginCard.classList.remove('hidden');
+  appContent.classList.add('hidden');
+  if (leftRail) {
+    leftRail.classList.add('hidden');
+    leftRail.classList.remove('is-open');
+  }
+  if (openRailBtn) {
+    openRailBtn.classList.add('hidden');
+    openRailBtn.setAttribute('aria-expanded', 'false');
+  }
+  accountBadge.textContent = 'Cuenta activa';
+  setStatus('Sesión cerrada. Inicia sesión para continuar.', 'success');
+  setLoginRole('user');
 }
 
 function updateInstallPromptState() {
@@ -447,7 +483,7 @@ function openTutorCommunication(message) {
   const cleanPhone = (tutor.phone || '').replace(/\D/g, '');
 
   if (cleanEmail && !cleanPhone) {
-    const mailtoUrl = `mailto:${encodeURIComponent(cleanEmail)}?subject=${encodeURIComponent('G.M.A.C - Alerta')}&body=${encodeURIComponent(message)}`;
+    const mailtoUrl = `mailto:${encodeURIComponent(cleanEmail)}?subject=${encodeURIComponent('GMAC - Alerta')}&body=${encodeURIComponent(message)}`;
     window.location.href = mailtoUrl;
     setStatus('Se abrió el correo para enviar la alerta al tutor.', 'success');
     return;
@@ -486,7 +522,7 @@ function showAlertMessage(message) {
   playAlertSound();
 
   if ('Notification' in window && Notification.permission === 'granted') {
-    new Notification('G.M.A.C - Alerta', { body: message });
+    new Notification('GMAC - Alerta', { body: message });
   }
 
   if ('vibrate' in navigator) {
@@ -503,7 +539,7 @@ function buildAlertMessage(reason) {
   const emailReference = tutorEmail.value ? `Correo: ${tutorEmail.value}.` : '';
   const phoneReference = tutorPhone.value ? `Contacto: ${tutorPhone.value}.` : '';
 
-  return `G.M.A.C: ${reason} ${locationText}. ${tutorReference} ${emailReference} ${phoneReference}`.trim();
+  return `GMAC: ${reason} ${locationText}. ${tutorReference} ${emailReference} ${phoneReference}`.trim();
 }
 
 function triggerTutorAlert(reason) {
@@ -780,6 +816,21 @@ sendAlertBtn.addEventListener('click', () => {
 userRoleBtn.addEventListener('click', () => setLoginRole('user'));
 tutorRoleBtn.addEventListener('click', () => setLoginRole('tutor'));
 
+if (logoutBtn) {
+  logoutBtn.addEventListener('click', () => {
+    resetToLoginScreen();
+  });
+}
+
+function setRailOpen(isOpen) {
+  if (!leftRail || !openRailBtn) return;
+  leftRail.classList.toggle('is-open', isOpen);
+  openRailBtn.setAttribute('aria-expanded', String(isOpen));
+}
+
+openRailBtn?.addEventListener('click', () => setRailOpen(true));
+closeRailBtn?.addEventListener('click', () => setRailOpen(false));
+
 generateCodeBtn.addEventListener('click', generatePairingCode);
 copyPairingBtn.addEventListener('click', copyPairingCode);
 refreshPairingBtn.addEventListener('click', () => {
@@ -820,8 +871,13 @@ tutorLoginForm.addEventListener('submit', (event) => {
   const expectedPairingCode = getPairingCode();
   const pairingCode = normalizePairingCode(loginPairingCode.value);
 
-  if (!loginEmail.validity.valid || password.length < 6 || !expectedPairingCode || pairingCode !== expectedPairingCode) {
-    setStatus('Revisa el correo, la contraseña y el código de vinculación.', 'error');
+  if (!loginEmail.validity.valid || password.length < 6) {
+    setStatus('Revisa el correo y la contraseña.', 'error');
+    return;
+  }
+
+  if (!expectedPairingCode || pairingCode !== expectedPairingCode) {
+    setStatus('El código de vinculación no coincide con el generado por la persona usuaria. Revisa que sea el mismo y que no haya caducado.', 'error');
     return;
   }
 

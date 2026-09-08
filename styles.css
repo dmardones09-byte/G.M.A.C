@@ -47,9 +47,105 @@ body {
 }
 
 .app-shell {
-  width: min(100vw, 480px);
+  width: min(100vw, 520px);
   min-height: 100vh;
   padding: 18px 14px 30px;
+  position: relative;
+}
+
+.left-rail {
+  position: fixed;
+  z-index: 20;
+  top: 0;
+  left: 0;
+  width: 240px;
+  min-height: 100vh;
+  background: var(--surface);
+  border-right: 1px solid rgba(91, 114, 106, 0.12);
+  padding: 18px 14px;
+  box-shadow: 12px 0 28px var(--shadow);
+  transform: translateX(-105%);
+  transition: transform 180ms ease;
+}
+
+.left-rail.is-open {
+  transform: translateX(0);
+}
+
+.rail-open,
+.rail-close {
+  width: auto;
+  box-shadow: none;
+}
+
+.rail-open {
+  position: fixed;
+  z-index: 15;
+  top: 16px;
+  left: 16px;
+  padding: 0.6rem 0.75rem;
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 1.1rem;
+}
+
+.rail-close {
+  padding: 0.1rem 0.5rem;
+  border-radius: 8px;
+  background: var(--primary-soft);
+  color: var(--text);
+  font-size: 1.25rem;
+  line-height: 1;
+}
+
+.rail-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.rail-brand {
+  margin-bottom: 0;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(91, 114, 106, 0.08);
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--primary-strong);
+}
+
+.rail-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.rail-btn {
+  width: 100%;
+  padding: 0.7rem 0.6rem;
+  border-radius: 10px;
+  background: var(--primary-soft);
+  color: var(--text);
+  font-size: 0.75rem;
+  box-shadow: none;
+}
+
+.rail-btn.active {
+  background: var(--primary);
+  color: white;
+}
+
+.rail-btn.danger {
+  background: #f0e0e0;
+  color: var(--danger);
+}
+
+.rail-btn.bluetooth-rail-btn {
+  background: #dce9f2;
+  color: #315d78;
 }
 
 .app-card {
@@ -754,6 +850,12 @@ button:hover {
   font-size: 0.9rem;
 }
 
+@media (max-width: 720px) {
+  .app-shell {
+    width: min(100vw, 480px);
+  }
+}
+
 @media (max-width: 360px) {
   .topbar {
     align-items: flex-start;
@@ -763,6 +865,7 @@ button:hover {
   .info-grid {
     grid-template-columns: 1fr;
   }
+
 }
 
 @media (min-width: 760px) {
