@@ -71,6 +71,7 @@ let lastHeartRateAlertAt = 0;
 let currentRole = 'tutor';
 let alertAudioContext = null;
 let currentAccountEmail = '';
+let sharedPairingCode = '';
 registerTutorBtn.hidden = true;
 registerTutorBtn.setAttribute('aria-hidden', 'true');
 registerTutorBtn.style.display = 'none';
@@ -185,6 +186,41 @@ function escapeHtml(value) {
 
 function normalizePairingCode(value = '') {
   return String(value ?? '').trim().replace(/\s+/g, '').toUpperCase();
+}
+
+function isSharedServerAvailable() {
+  return window.location.protocol === 'http:' || window.location.protocol === 'https:';
+}
+
+async function savePairingCodeToServer(code) {
+  if (!isSharedServerAvailable()) return false;
+
+  try {
+    const response = await fetch('/api/pairing', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code })
+    });
+    if (!response.ok) return false;
+    sharedPairingCode = code;
+    return true;
+  } catch (error) {
+    return false;
+  }
+}
+
+async function loadPairingCodeFromServer() {
+  if (!isSharedServerAvailable()) return '';
+
+  try {
+    const response = await fetch('/api/pairing', { cache: 'no-store' });
+    if (!response.ok) return '';
+    const data = await response.json();
+    sharedPairingCode = normalizePairingCode(data.code);
+    return sharedPairingCode;
+  } catch (error) {
+    return '';
+  }
 }
 
 function getPairingCode() {
@@ -438,11 +474,12 @@ function updateInstallPromptState() {
   }
 }
 
-function generatePairingCode() {
+async function generatePairingCode() {
   const randomBytes = new Uint32Array(1);
   globalThis.crypto.getRandomValues(randomBytes);
   const code = normalizePairingCode(`GMAC-${String(randomBytes[0] % 10000).padStart(4, '0')}`);
   localStorage.setItem(PAIRING_KEY, JSON.stringify({ code, createdAt: Date.now() }));
+  await savePairingCodeToServer(code);
   pairingCodeEl.textContent = code;
   userPairingCode.textContent = code;
   setStatus('Código generado. Compártelo con el tutor.', 'success');
@@ -833,11 +870,11 @@ closeRailBtn?.addEventListener('click', () => setRailOpen(false));
 
 generateCodeBtn.addEventListener('click', generatePairingCode);
 copyPairingBtn.addEventListener('click', copyPairingCode);
-refreshPairingBtn.addEventListener('click', () => {
-  generatePairingCode();
+refreshPairingBtn.addEventListener('click', async () => {
+  await generatePairingCode();
 });
 
-userLoginForm.addEventListener('submit', (event) => {
+userLoginForm.addEventListener('submit', async (event) => {
   event.preventDefault();
 
   const name = userName.value.trim();
@@ -859,16 +896,15 @@ userLoginForm.addEventListener('submit', (event) => {
     userEventForm.classList.remove('hidden');
   }
   showAppContent('user');
-  generatePairingCode();
+  await generatePairingCode();
   setStatus('Sesión iniciada. Comparte el código con tu tutor.', 'success');
 });
 
-tutorLoginForm.addEventListener('submit', (event) => {
+tutorLoginForm.addEventListener('submit', async (event) => {
   event.preventDefault();
 
   const email = loginEmail.value.trim().toLowerCase();
   const password = loginPassword.value;
-  const expectedPairingCode = getPairingCode();
   const pairingCode = normalizePairingCode(loginPairingCode.value);
 
   if (!loginEmail.validity.valid || password.length < 6) {
@@ -876,6 +912,7 @@ tutorLoginForm.addEventListener('submit', (event) => {
     return;
   }
 
+  const expectedPairingCode = await loadPairingCodeFromServer() || getPairingCode();
   if (!expectedPairingCode || pairingCode !== expectedPairingCode) {
     setStatus('El código de vinculación no coincide con el generado por la persona usuaria. Revisa que sea el mismo y que no haya caducado.', 'error');
     return;
